@@ -23,6 +23,8 @@ describe Ohai::System, "plugin openstack" do
   let(:plugin) { get_plugin("openstack") }
   let(:default_timeout) { 2 }
 
+  PasswdEntry = Struct.new(:name, :uid, :gid, :dir, :shell, :gecos)
+
   before(:each) do
     allow(plugin).to receive(:hint?).with("openstack").and_return(false)
     plugin[:virtualization] = { system: {} }
@@ -42,10 +44,11 @@ describe Ohai::System, "plugin openstack" do
           .with(Ohai::Mixin::Ec2Metadata::EC2_METADATA_ADDR, 80, default_timeout)
           .and_return(false)
         plugin[:virtualization] = { system: { guest: "openstack" } }
+        expect(Etc).to receive(:getpwnam).and_raise(ArgumentError)
         plugin.run
       end
 
-      it "sets openstack attribute" do
+      it "sets provider attribute to openstack" do
         expect(plugin[:openstack][:provider]).to eq("openstack")
       end
 
@@ -62,6 +65,7 @@ describe Ohai::System, "plugin openstack" do
         .with(Ohai::Mixin::Ec2Metadata::EC2_METADATA_ADDR, 80, default_timeout)
         .and_return(false)
       plugin[:virtualization] = { system: { guest: "openstack" } }
+      expect(Etc).to receive(:getpwnam).and_return(PasswdEntry.new("dhc-user", 800, 800, "/var/www", "/bin/false", "The dreamhost user"))
       plugin.run
       expect(plugin[:openstack][:provider]).to eq("dreamhost")
     end
